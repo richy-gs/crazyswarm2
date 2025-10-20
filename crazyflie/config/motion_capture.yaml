@@ -1,9 +1,10 @@
 /motion_capture_tracking:
   ros__parameters:
     # one of "optitrack", "optitrack_closed_source", "vicon", "qualisys", "nokov", "vrpn", "motionanalysis"
-    type: "optitrack"
+    type: "vicon"
     # Specify the hostname or IP of the computer running the motion capture software
-    hostname: "141.23.110.143"
+    # hostname: "10.15.232.110"  # Wifi Lab_Rototica
+    hostname: "192.168.1.23"  # Ethernet Lab_Rototica
 
     topics:
       frame_id: "mocap"
