@@ -10,11 +10,17 @@ HOVER_DURATION = 5.0
 def main():
     swarm = Crazyswarm()
     timeHelper = swarm.timeHelper
-    cf = swarm.allcfs.crazyflies[0]
+    # take off all available crazyflies
+    cfs = swarm.allcfs.crazyflies
 
-    cf.takeoff(targetHeight=1.0, duration=TAKEOFF_DURATION)
+    for cf in cfs:
+        cf.takeoff(targetHeight=1.0, duration=TAKEOFF_DURATION)
+
     timeHelper.sleep(TAKEOFF_DURATION + HOVER_DURATION)
-    cf.land(targetHeight=0.04, duration=2.5)
+
+    for cf in cfs:
+        cf.land(targetHeight=0.04, duration=2.5)
+
     timeHelper.sleep(TAKEOFF_DURATION)
 
 
