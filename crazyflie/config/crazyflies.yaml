@@ -2,9 +2,9 @@
 fileversion: 3
 
 robots:
-  cf231:
+  cf1:
     enabled: true
-    uri: radio://0/80/2M/E7E7E7E702
+    uri: radio://0/80/2M/E7E7E7E701
     initial_position: [0.0, 0.0, 0.0]
     type: cf21  # see robot_types
     # firmware_params:
@@ -18,9 +18,9 @@ robots:
     #       vars: ["acc.x", "acc.y"]
     # reference_frame: "odom_cf231" # use a custom reference frame if no global coordinate system is available
 
-  cf5:
+  cf2:
     enabled: true
-    uri: radio://0/80/2M/E7E7E7E701
+    uri: radio://0/80/2M/E7E7E7E702
     initial_position: [0.0, -1.0, 0.0]
     type: cf21  # see robot_types
     # firmware_params:
@@ -48,7 +48,7 @@ robot_types:
     # firmware_params:
     #   kalman:
     #     pNAcc_xy: 1.0 # default 0.5
-    #firmware_logging:
+    # firmware_logging:
     #   enabled: true
     #   default_topics:
     #   pose:
@@ -92,9 +92,9 @@ all:
     default_topics:
      # remove to disable default topic
       pose:
-        frequency: 10 # Hz
+        frequency: 30 # Hz
       status:
-        frequency: 1 # Hz
+        frequency: 10 # Hz
     #custom_topics:
     #  topic_name1:
     #    frequency: 10 # Hz
