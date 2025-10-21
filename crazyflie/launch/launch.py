@@ -125,7 +125,7 @@ def generate_launch_description():
         DeclareLaunchArgument('rviz_config_file', 
                               default_value=default_rviz_config_path),
         DeclareLaunchArgument('backend', default_value='cpp'),
-        DeclareLaunchArgument('debug', default_value='False'),
+        DeclareLaunchArgument('debug', default_value='True'),
         DeclareLaunchArgument('rviz', default_value='True'),
         DeclareLaunchArgument('gui', default_value='False'),
         DeclareLaunchArgument('teleop', default_value='False'),
