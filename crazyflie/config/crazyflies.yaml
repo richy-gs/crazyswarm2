@@ -33,6 +33,42 @@ robots:
     #      vars: ["acc.x", "acc.y", "acc.z"]
     # reference_frame: "odom_cf5" 
 
+  cf3:
+    enabled: true
+    uri: radio://0/80/2M/E7E7E7E703
+    initial_position: [-1.0, 0.0, 0.0]
+    type: cf21
+
+  cf4:
+    enabled: true
+    uri: radio://1/100/2M/E7E7E7E704
+    initial_position: [-1.0, -1.0, 0.0]
+    type: cf21
+
+  cf5:
+    enabled: true
+    uri: radio://1/100/2M/E7E7E7E705
+    initial_position: [-2.0, 0.0, 0.0]
+    type: cf21
+
+  cf6:
+    enabled: true
+    uri: radio://1/100/2M/E7E7E7E706
+    initial_position: [-2.0, -1.0, 0.0]
+    type: cf21
+
+  cf7:
+    enabled: true
+    uri: radio://2/90/2M/E7E7E7E709
+    initial_position: [-3.0, 0.0, 0.0]
+    type: cf21
+
+  cf8:
+    enabled: true
+    uri: radio://2/90/2M/E7E7E7E708
+    initial_position: [-3.0, -1.0, 0.0]
+    type: cf21
+
 # Definition of the various robot types
 robot_types:
   cf21:
