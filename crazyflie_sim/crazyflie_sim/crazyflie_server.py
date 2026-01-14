@@ -9,11 +9,13 @@ A crazyflie server for simulation.
 
 from functools import partial
 import importlib
+from typing import Any
 
 from crazyflie_interfaces.msg import FullState, Hover
 from crazyflie_interfaces.srv import GoTo, Land, Takeoff
 from crazyflie_interfaces.srv import NotifySetpointsStop, StartTrajectory, UploadTrajectory
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import PoseStamped, Twist
+from nav_msgs.msg import Odometry
 import rclpy
 from rclpy.node import Node
 import rowan
@@ -27,6 +29,7 @@ from std_srvs.srv import Empty
 from .crazyflie_sil import CrazyflieSIL, TrajectoryPolynomialPiece
 from .sim_data_types import State
 
+from math import degrees
 
 class CrazyflieServer(Node):
 
@@ -40,6 +43,8 @@ class CrazyflieServer(Node):
         # Turn ROS parameters into a dictionary
         self._ros_parameters = self._param_to_dict(self._parameters)
         self.cfs = {}
+        self.pose_publishers = {}
+        self.odom_publishers = {}
 
         world_tf_name = 'world'
         robot_yaml_version = 0
@@ -54,7 +59,7 @@ class CrazyflieServer(Node):
         # Parse robots
         names = []
         initial_states = []
-        reference_frames = []
+        self.reference_frames = []
         for cfname in robot_data:
             if robot_data[cfname]['enabled']:
                 type_cf = robot_data[cfname]['type']
@@ -82,7 +87,7 @@ class CrazyflieServer(Node):
                                 cfname]['reference_frame']
                         except KeyError:
                             pass
-                    reference_frames.append(reference_frame)
+                    self.reference_frames.append(reference_frame)
 
         # initialize backend by dynamically loading the module
         backend_name = self._ros_parameters['sim']['backend']
@@ -107,7 +112,7 @@ class CrazyflieServer(Node):
                         self._ros_parameters['sim']['visualizations'][vis_key],
                         names,
                         initial_states,
-                        reference_frames
+                        self.reference_frames
                     )
                 else:
                     vis = class_(
@@ -135,6 +140,18 @@ class CrazyflieServer(Node):
                     rclpy.qos.QoSProfile(
                         depth=1,
                         durability=rclpy.qos.QoSDurabilityPolicy.TRANSIENT_LOCAL))
+            
+            # Create pose publisher for each drone
+            self.pose_publishers[name] = self.create_publisher(
+                    PoseStamped,
+                    name + '/pose',
+                    10)
+            
+            # Create odometry publisher for each drone
+            self.odom_publishers[name] = self.create_publisher(
+                    Odometry,
+                    name + '/odom',
+                    10)
 
             msg = String()
             msg.data = self._ros_parameters['robot_description'].replace('$NAME', name)
@@ -173,7 +190,7 @@ class CrazyflieServer(Node):
             self.create_service(
                 NotifySetpointsStop,
                 name + '/notify_setpoints_stop',
-                partial(self._notify_setpoints_stop_callback, name=name)
+                partial[Any](self._notify_setpoints_stop_callback, name=name)
             )
             self.create_subscription(
                 Twist,
@@ -233,6 +250,49 @@ class CrazyflieServer(Node):
         # update the resulting state
         for state, (_, cf) in zip(states_next, self.cfs.items()):
             cf.setState(state)
+
+        # publish pose and odometry for each drone
+        current_time = self.get_clock().now()
+        for idx, ((name, _), state) in enumerate(zip(self.cfs.items(), states_next)):
+            frame_id = self.reference_frames[idx] if idx < len(self.reference_frames) else 'world'
+            
+            # Publish pose
+            pose_msg = PoseStamped()
+            pose_msg.header.stamp = current_time.to_msg()
+            pose_msg.header.frame_id = frame_id
+            pose_msg.pose.position.x = float(state.pos[0])
+            pose_msg.pose.position.y = float(state.pos[1])
+            pose_msg.pose.position.z = float(state.pos[2])
+            # State.quat is [qw, qx, qy, qz], ROS uses [x, y, z, w]
+            pose_msg.pose.orientation.x = float(state.quat[1])
+            pose_msg.pose.orientation.y = float(state.quat[2])
+            pose_msg.pose.orientation.z = float(state.quat[3])
+            pose_msg.pose.orientation.w = float(state.quat[0])
+            self.pose_publishers[name].publish(pose_msg)
+            
+            # Publish odometry
+            odom_msg = Odometry()
+            odom_msg.header.stamp = current_time.to_msg()
+            odom_msg.header.frame_id = frame_id
+            odom_msg.child_frame_id = name + '/base_link'
+            # Pose (position and orientation)
+            odom_msg.pose.pose.position.x = float(state.pos[0])
+            odom_msg.pose.pose.position.y = float(state.pos[1])
+            odom_msg.pose.pose.position.z = float(state.pos[2])
+            odom_msg.pose.pose.orientation.x = float(state.quat[1])
+            odom_msg.pose.pose.orientation.y = float(state.quat[2])
+            odom_msg.pose.pose.orientation.z = float(state.quat[3])
+            odom_msg.pose.pose.orientation.w = float(state.quat[0])
+            # Twist (linear and angular velocity)
+            # Linear velocity is in world frame (matches state.vel)
+            odom_msg.twist.twist.linear.x = float(state.vel[0])
+            odom_msg.twist.twist.linear.y = float(state.vel[1])
+            odom_msg.twist.twist.linear.z = float(state.vel[2])
+            # Angular velocity is in body frame (matches state.omega)
+            odom_msg.twist.twist.angular.x = float(state.omega[0])
+            odom_msg.twist.twist.angular.y = float(state.omega[1])
+            odom_msg.twist.twist.angular.z = float(state.omega[2])
+            self.odom_publishers[name].publish(odom_msg)
 
         for vis in self.visualizations:
             vis.step(self.backend.time(), states_next, states_desired, actions)
@@ -377,7 +437,12 @@ class CrazyflieServer(Node):
 
         Used from the velocity multiplexer (vel_mux).
         """
-        self.get_logger().info('cmd_hover not yet implemented')
+        vx = msg.vx
+        vy = msg.vy 
+        z = msg.z_distance
+        # Convert yaw_rate from rad/s to deg/s and invert (matching real server convention)
+        yawrate = -1.0 * degrees(msg.yaw_rate)
+        self.cfs[name].cmdHover(vx, vy, yawrate, z)
 
     def _cmd_full_state_changed(self, msg, name):
         q = [msg.pose.orientation.w,

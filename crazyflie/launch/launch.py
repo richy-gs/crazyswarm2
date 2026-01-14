@@ -126,7 +126,7 @@ def generate_launch_description():
                               default_value=default_rviz_config_path),
         DeclareLaunchArgument('backend', default_value='cflib'),
         DeclareLaunchArgument('debug', default_value='False'),
-        DeclareLaunchArgument('rviz', default_value='True'),
+        DeclareLaunchArgument('rviz', default_value='False'),
         DeclareLaunchArgument('gui', default_value='False'),
         DeclareLaunchArgument('teleop', default_value='False'),
         DeclareLaunchArgument('mocap', default_value='True'),
